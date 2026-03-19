@@ -1,0 +1,27 @@
+# 1. Dependências locais (O MAIS IMPORTANTE)
+node_modules
+npm-debug.log
+yarn-error.log
+
+# 2. Ficheiros de compilação locais do Next.js
+.next
+out
+build
+
+# 3. Ficheiros de variáveis de ambiente (Segurança)
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# 4. Controlo de versões e ficheiros do próprio Docker
+.git
+.gitignore
+.dockerignore
+Dockerfile
+
+# 5. Documentação e lixo do Sistema Operativo
+README.md
+.DS_Store
+*:Zone.Identifier
