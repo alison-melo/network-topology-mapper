@@ -8,7 +8,7 @@ RUN npm run build
 FROM node:18-alpine AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
+ENV NODE_ENV=production
 
 COPY --from=builder /app/next.config.js ./
 COPY --from=builder /app/public ./public
