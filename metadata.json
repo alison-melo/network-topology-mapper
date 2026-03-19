@@ -1,0 +1,5 @@
+{
+  "name": "Network Topology Mapper",
+  "description": "An open-source network discovery and topology mapping web application using Next.js, Tailwind CSS, and Cytoscape.js.",
+  "requestFramePermissions": []
+}

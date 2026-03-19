@@ -1,0 +1,37 @@
+name: CI Pipeline - Aplicação de Topologia
+
+# Define quando a automação vai rodar (ao fazer push na branch main)
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    # Dá permissão para o robô do GitHub salvar pacotes no seu perfil
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      # Passo 1: O robô faz o download do seu código
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      # Passo 2: O robô faz login no GitHub Container Registry
+      - name: Login no GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Passo 3: Constrói a imagem e envia (Push)
+      - name: Build and Push da imagem Docker
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          # Nomeia a imagem com o seu usuário e o nome do repositório
+          tags: ghcr.io/${{ github.repository }}:latest
