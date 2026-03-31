@@ -119,15 +119,23 @@ export default function TopologyMap({ tree, isScanning, devices = [] }: Topology
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
 
   useEffect(() => {
-    if (selectedNode) {
-      setIsLoadingDevices(true);
-      fetch('/api/switch-devices', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ switchIp: selectedNode.ip })
-      })
-      .then(res => res.json())
-      .then(data => {
+    if (!selectedNode) {
+      return;
+    }
+
+    let isMounted = true;
+
+    const fetchDevices = async () => {
+      try {
+        isMounted && setIsLoadingDevices(true);
+        const response = await fetch('/api/switch-devices', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ switchIp: selectedNode.ip })
+        });
+        const data = await response.json();
+        if (!isMounted) return;
+
         if (data.devices) {
           // Map MACs to IPs and Vendors using the devices array
           const enrichedDevices = data.devices.map((d: any) => {
@@ -142,15 +150,21 @@ export default function TopologyMap({ tree, isScanning, devices = [] }: Topology
         } else {
           setEndDevices([]);
         }
-      })
-      .catch(err => {
+      } catch (err) {
         console.error('Failed to fetch switch devices', err);
-        setEndDevices([]);
-      })
-      .finally(() => {
-        setIsLoadingDevices(false);
-      });
-    }
+        if (isMounted) {
+          setEndDevices([]);
+        }
+      } finally {
+        isMounted && setIsLoadingDevices(false);
+      }
+    };
+
+    fetchDevices();
+
+    return () => {
+      isMounted = false;
+    };
   }, [selectedNode, devices]);
 
   const exportToCSV = () => {
