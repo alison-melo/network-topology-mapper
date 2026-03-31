@@ -40,15 +40,19 @@ export default function Home() {
       const res = await fetch('/api/locate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: searchQuery.trim(), switches: switchIps })
+        body: JSON.stringify({ query: searchQuery.trim(), switches: switchIps, devices })
       });
       
       const data = await res.json();
       
       if (res.ok && data.found) {
+        let message = `Dispositivo ${searchQuery} encontrado no equipamento ${data.switchName} na porta ${data.portName}`;
+        if (data.warning) {
+          message += `\n\n⚠️ ${data.warning}`;
+        }
         setSearchResult({
           found: true,
-          message: `Dispositivo ${searchQuery} encontrado no equipamento ${data.switchName} na porta ${data.portName}`
+          message
         });
       } else if (res.status === 409 && data.locations) {
         // Multiple locations found - network configuration issue

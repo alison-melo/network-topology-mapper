@@ -3,10 +3,10 @@ import { walkArpTable, findMacInFdb, queryBasicSnmpInfo, getLldpNeighbors } from
 
 export async function POST(req: NextRequest) {
   try {
-    const { query, switches } = await req.json();
+    const { query, switches, devices } = await req.json();
     
     if (!query || !switches || !Array.isArray(switches)) {
-      return new Response(JSON.stringify({ error: 'Query and switches array are required' }), { status: 400 });
+      return new Response(JSON.stringify({ error: 'Query, switches array, and devices are required' }), { status: 400 });
     }
 
     const isMac = /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/.test(query);
@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
       switchName: string;
       portName: string;
       isTrunk: boolean;
+      neighbors: any[];
     }> = [];
 
     for (const switchIp of switches) {
@@ -63,7 +64,8 @@ export async function POST(req: NextRequest) {
             switchIp,
             switchName,
             portName,
-            isTrunk
+            isTrunk,
+            neighbors
           });
         }
       } catch (err) {
@@ -84,12 +86,20 @@ export async function POST(req: NextRequest) {
     }
 
     if (edgeLocations.length > 1) {
-      // Multiple edge locations - this indicates a network configuration issue
+      // Multiple edge locations - for now, return first with warning
+      // TODO: Implement topology-aware final location detection
       const locationsStr = edgeLocations.map(loc => `${loc.switchName}:${loc.portName}`).join(', ');
+      const firstLocation = edgeLocations[0];
+      
       return new Response(JSON.stringify({
-        error: `MAC ${targetMac} encontrado em múltiplas portas edge (${locationsStr}). Isso indica problema de configuração de rede (loop ou spanning tree).`,
-        locations: edgeLocations
-      }), { status: 409 }); // Conflict status
+        found: true,
+        mac: targetMac,
+        switchIp: firstLocation.switchIp,
+        switchName: firstLocation.switchName,
+        portName: firstLocation.portName,
+        warning: `MAC encontrado em múltiplas localizações (${locationsStr}). Usando primeira como estimativa.`,
+        allLocations: edgeLocations
+      }), { status: 200 });
     }
 
     // Single edge location found - this is the correct one
