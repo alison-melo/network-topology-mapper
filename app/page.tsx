@@ -50,6 +50,13 @@ export default function Home() {
           found: true,
           message: `Dispositivo ${searchQuery} encontrado no equipamento ${data.switchName} na porta ${data.portName}`
         });
+      } else if (res.status === 409 && data.locations) {
+        // Multiple locations found - network configuration issue
+        const locationsStr = data.locations.map((loc: any) => `${loc.switchName}:${loc.portName}`).join(', ');
+        setSearchResult({
+          found: false,
+          message: `⚠️ ALERTA: MAC encontrado em múltiplas portas (${locationsStr}). Verifique configuração de rede - possível loop ou problema de spanning tree.`
+        });
       } else {
         setSearchResult({
           found: false,

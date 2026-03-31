@@ -41,6 +41,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Step B, C, D: Find Edge Port
+    const foundLocations: Array<{
+      switchIp: string;
+      switchName: string;
+      portName: string;
+      isTrunk: boolean;
+    }> = [];
+
     for (const switchIp of switches) {
       try {
         const portName = await findMacInFdb(switchIp, targetMac);
@@ -48,27 +55,52 @@ export async function POST(req: NextRequest) {
           // Step C: Check LLDP to see if this is a trunk port
           const neighbors = await getLldpNeighbors(switchIp);
           const isTrunk = neighbors.some(n => n.port === portName);
-          
-          if (!isTrunk) {
-            // Step D: Edge port found!
-            const snmpInfo = await queryBasicSnmpInfo(switchIp);
-            const switchName = snmpInfo?.name || switchIp;
 
-            return new Response(JSON.stringify({
-              found: true,
-              mac: targetMac,
-              switchIp,
-              switchName,
-              portName
-            }), { status: 200 });
-          }
+          const snmpInfo = await queryBasicSnmpInfo(switchIp);
+          const switchName = snmpInfo?.name || switchIp;
+
+          foundLocations.push({
+            switchIp,
+            switchName,
+            portName,
+            isTrunk
+          });
         }
       } catch (err) {
         console.error(`Failed to query FDB/LLDP on ${switchIp}`, err);
       }
     }
 
-    return new Response(JSON.stringify({ error: `Device with MAC ${targetMac} not found on any edge port` }), { status: 404 });
+    // Filter to edge ports only (not trunk)
+    const edgeLocations = foundLocations.filter(loc => !loc.isTrunk);
+
+    if (edgeLocations.length === 0) {
+      if (foundLocations.length > 0) {
+        return new Response(JSON.stringify({
+          error: `MAC ${targetMac} encontrado apenas em portas trunk (${foundLocations.length} localizações). Verifique configuração de rede.`
+        }), { status: 404 });
+      }
+      return new Response(JSON.stringify({ error: `Device with MAC ${targetMac} not found on any edge port` }), { status: 404 });
+    }
+
+    if (edgeLocations.length > 1) {
+      // Multiple edge locations - this indicates a network configuration issue
+      const locationsStr = edgeLocations.map(loc => `${loc.switchName}:${loc.portName}`).join(', ');
+      return new Response(JSON.stringify({
+        error: `MAC ${targetMac} encontrado em múltiplas portas edge (${locationsStr}). Isso indica problema de configuração de rede (loop ou spanning tree).`,
+        locations: edgeLocations
+      }), { status: 409 }); // Conflict status
+    }
+
+    // Single edge location found - this is the correct one
+    const location = edgeLocations[0];
+    return new Response(JSON.stringify({
+      found: true,
+      mac: targetMac,
+      switchIp: location.switchIp,
+      switchName: location.switchName,
+      portName: location.portName
+    }), { status: 200 });
 
   } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });
