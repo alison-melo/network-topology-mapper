@@ -1,3 +1,5 @@
+[![CI Pipeline - Aplicação de Topologia](https://github.com/alison-melo/network-topology-mapper/actions/workflows/ci.yml/badge.svg)](https://github.com/alison-melo/network-topology-mapper/actions/workflows/ci.yml)
+
 # NTM (Network Topology Mapper) 🌐
 
 ![Docker Image Version](https://img.shields.io/badge/docker%20image-latest-blue?logo=docker)
